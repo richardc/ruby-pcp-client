@@ -1,1 +1,1 @@
-Protocol common definitions and message codec
+ruby-pcp-client  Client library for Puppet Communications Protocol

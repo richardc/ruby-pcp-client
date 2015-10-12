@@ -7,22 +7,6 @@ RSpec.describe PCP::Message do
     end
   end
 
-  context '.decode' do
-    it 'makes a message' do
-      message = described_class.decode([1])
-      expect(message).to be_an_instance_of(described_class)
-    end
-  end
-
-  context '#encode' do
-    it 'returns an array of bytes' do
-      # TODO(richardc): is an array of bytes ruby-ish?  How about just a byte string?
-      message = described_class.new
-      encoded = message.encode
-      expect(encoded).to be_a(Array)
-    end
-  end
-
   context '#[]' do
     it 'fetches from @envelope' do
       message = described_class.new
@@ -70,6 +54,25 @@ RSpec.describe PCP::Message do
       message.instance_variable_set(:@chunks, ['data', 'debug'])
       message.debug = 'new-debug'
       expect(message.instance_variable_get(:@chunks)).to eq(['data', 'new-debug'])
+    end
+  end
+
+  context '.decode' do
+    it 'makes a message' do
+      message = described_class.decode([1])
+      expect(message).to be_an_instance_of(described_class)
+    end
+  end
+
+  context '#encode' do
+    it 'returns an array of bytes' do
+      message = described_class.new
+      message.data = 'test'
+      encoded = message.encode
+      expect(encoded).to eq("\x01" +
+                            "\x01\x00\x00\x00\x02{}" +
+                            "\x02\x00\x00\x00\x04test" +
+                            "\x03\x00\x00\x00\x00")
     end
   end
 end

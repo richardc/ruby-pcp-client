@@ -1,18 +1,10 @@
+require 'json'
+
 module PCP
   class Message
     def initialize()
-      @version = 1
       @envelope = {}
-      @chunks = []
-    end
-
-    def self.decode(bytes = [])
-      message = Message.new
-      message
-    end
-
-    def encode
-      []
+      @chunks = ['', '']
     end
 
     # Envelope interaction when used as a hash
@@ -40,6 +32,26 @@ module PCP
 
     def debug=(value)
       @chunks[1] = value
+    end
+
+    def self.decode(bytes = [])
+      message = Message.new
+      message
+    end
+
+    def encode
+      chunks = []
+
+      @chunks.each_index do |i|
+        chunks << frame_chunk(i + 2, @chunks[i])
+      end
+
+      ["\x01", frame_chunk(1, @envelope.to_json), chunks].flatten.join('')
+    end
+
+    private
+    def frame_chunk(type, body)
+      [type, body.bytesize, body].pack('CNa*')
     end
   end
 end

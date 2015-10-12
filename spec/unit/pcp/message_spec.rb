@@ -59,8 +59,13 @@ RSpec.describe PCP::Message do
 
   context '.decode' do
     it 'makes a message' do
-      message = described_class.decode([1])
-      expect(message).to be_an_instance_of(described_class)
+      encoded = "\x01" +
+                "\x01\x00\x00\x00\x0d{\"foo\":\"bar\"}" +
+                "\x02\x00\x00\x00\x04test" +
+                "\x03\x00\x00\x00\x00"
+      message = described_class.decode(encoded)
+      expect(message.data).to eq('test')
+      expect(message[:foo]).to eq('bar')
     end
   end
 

@@ -34,8 +34,28 @@ module PCP
       @chunks[1] = value
     end
 
-    def self.decode(bytes = [])
+    def self.decode(bytes = '')
       message = Message.new
+      (version, rest) = bytes.unpack('Ca*')
+
+      unless version == 1
+        raise "Can only handle type 1 messages"
+      end
+
+      while rest.bytesize > 0
+        (type, size, rest) = rest.unpack('CNa*')
+        (body, rest) = rest.unpack("a#{size}a*")
+
+        if type == 1
+          envelope = JSON.parse(body)
+          envelope.each do |k,v|
+            message[k.to_sym] = v
+          end
+        else
+          message.instance_variable_get(:@chunks)[type - 2] = body
+        end
+      end
+
       message
     end
 

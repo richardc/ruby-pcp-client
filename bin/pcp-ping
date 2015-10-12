@@ -1,0 +1,90 @@
+#!/usr/bin/env ruby
+require 'pcp/client'
+
+start_time = Time.now.to_f
+
+Thread.new { EM.run }
+
+client = PCP::Client.new({:key => 'test-resources/ssl/private_keys/client04.example.com.pem',
+                          :cert => 'test-resources/ssl/certs/client04.example.com.pem'})
+
+# Record the expected set of destinations from the destination_report,
+# then all the responses from the rpc_blocking_response
+mutex = Mutex.new
+have_responses = ConditionVariable.new
+responses = {}
+expected = nil
+ping_time = nil
+
+client.connect(3) do |message|
+  mutex.synchronize do
+    case message[:message_type]
+    when 'http://puppetlabs.com/destination_report'
+      expected = JSON.load(message.data)['targets']
+    when 'http://puppetlabs.com/rpc_blocking_response'
+      sender = message[:sender]
+      time = Time.now.to_f - ping_time
+      responses[sender] = time
+      puts '%-55s %0.2f seconds' % [sender, time]
+    else
+      p [:unexpected_message, message]
+    end
+
+    have_responses.signal
+  end
+end
+
+if !client.associated?
+  puts "Didn't connect to broker."
+  exit 1
+end
+
+connect_time = Time.now.to_f - start_time
+puts "Connected to broker in %0.2f seconds." % [connect_time]
+puts
+
+ping = ::PCP::Message.new(:message_type => 'http://puppetlabs.com/rpc_blocking_request',
+                          :targets => ['pcp://*/agent'],
+                          :destination_report => true)
+
+ping.data = {:transaction_id => ping[:id],
+             :module => 'echo',
+             :action => 'echo',
+             :params => {:argument => 'echo'}}.to_json
+
+ping.expires(3)
+
+ping_time = Time.now.to_f
+client.send(ping)
+
+begin
+  Timeout::timeout(3) do
+    done = false
+    loop do
+      mutex.synchronize do
+        have_responses.wait(mutex)
+        if expected && expected.all? { |from| responses.include?(from) }
+          # Have all responses we expect, bail
+          run_time = Time.now.to_f - start_time
+          puts
+          puts "Received all responses in %0.2f seconds." % [ expected.size, run_time ]
+          done = true
+        end
+      end
+      break if done
+    end
+  end
+rescue Timeout::Error
+  puts
+  if expected
+    puts "Received %d/%d responses.  Following nodes were missing" % [responses.keys.size, expected.size]
+    puts
+    expected.select { |from| !responses.include?(from) }.each do |missing|
+      puts "    #{missing}"
+    end
+  else
+    puts "Didn't get destination report, not sure how many responses to expect.  We got %d." % [responses.keys.size]
+  end
+end
+
+EM.stop

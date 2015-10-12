@@ -1,10 +1,20 @@
 require 'json'
+require 'securerandom'
+require 'time'
 
 module PCP
   class Message
-    def initialize()
-      @envelope = {}
+    attr_reader :envelope
+
+    def initialize(envelope = {})
+      default_envelope = {:id => SecureRandom.uuid}
+      @envelope = default_envelope.merge(envelope)
       @chunks = ['', '']
+    end
+
+    def expires(seconds)
+      @envelope[:expires] = (Time.now + seconds).utc.iso8601
+      self
     end
 
     # Envelope interaction when used as a hash
@@ -66,10 +76,11 @@ module PCP
         chunks << frame_chunk(i + 2, @chunks[i])
       end
 
-      ["\x01", frame_chunk(1, @envelope.to_json), chunks].flatten.join('')
+      ["\x01", frame_chunk(1, envelope.to_json), chunks].flatten.join('')
     end
 
     private
+
     def frame_chunk(type, body)
       [type, body.bytesize, body].pack('CNa*')
     end

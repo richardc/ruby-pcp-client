@@ -1,9 +1,32 @@
 require 'pcp/message'
 
 RSpec.describe PCP::Message do
+  # Use the same uuid in all tests - this from a fair dice roll
+  let(:uuid) { '3790c4a2-dd71-41bf-bd6d-573779b38657' }
+
+  before :each do
+    allow(SecureRandom).to receive(:uuid).and_return(uuid)
+  end
+
   context 'constructor' do
     it 'makes an object' do
       expect(described_class.new).to be_an_instance_of(described_class)
+    end
+
+    it 'sets up a default envelope' do
+      expect(described_class.new.envelope).to eq({:id => uuid})
+    end
+
+    it 'merges arguments' do
+      expect(described_class.new({:message_type => 'example/rspec'}).envelope).to eq({:id => uuid, :message_type => 'example/rspec'})
+      expect(described_class.new({:id => 'rspec'}).envelope).to eq({:id => 'rspec'})
+    end
+  end
+
+  context '#expires' do
+    it 'sets the expiry in the envelope, returning a message' do
+      expect(Time).to receive(:now).and_return(Time.at(0))
+      expect(described_class.new.expires(3)[:expires]).to eq('1970-01-01T00:00:03Z')
     end
   end
 
@@ -19,7 +42,7 @@ RSpec.describe PCP::Message do
     it 'updates @envelope' do
       message = described_class.new
       message[:targets] = ['pcp:///server']
-      expect(message.instance_variable_get(:@envelope)).to eq({:targets => ['pcp:///server']})
+      expect(message.envelope[:targets]).to eq(['pcp:///server'])
     end
   end
 
@@ -73,6 +96,7 @@ RSpec.describe PCP::Message do
     it 'returns an array of bytes' do
       message = described_class.new
       message.data = 'test'
+      expect(message).to receive(:envelope).and_return({})
       encoded = message.encode
       expect(encoded).to eq("\x01" +
                             "\x01\x00\x00\x00\x02{}" +

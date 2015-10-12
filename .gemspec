@@ -4,8 +4,9 @@ Gem::Specification.new do |s|
   s.licenses    = ['ASL 2.0']
   s.summary     = "Client library for PCP"
   s.description = "See https://github.com/puppetlabs/pcp-specifications"
+  s.homepage    = 'https://github.com/puppetlabs/ruby-pcp-client'
   s.authors     = ["Puppet Labs"]
   s.email       = "puppet@puppetlabs.com"
-  s.files       = ["lib/pcp/message.rb"]
-  s.homepage    = 'https://github.com/puppetlabs/ruby-pcp-client'
+  s.files       = Dir["lib/**/*.rb"]
+  s.add_runtime_dependency 'faye-websocket'
 end

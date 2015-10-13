@@ -28,8 +28,7 @@ module PCP
 
       @connection.on :message do |event|
         #p [:message, event.data]
-        bytes = event.data.pack('C*')
-        message = ::PCP::Message.decode(bytes)
+        message = ::PCP::Message.decode(event.data)
 
         if message[:message_type] == 'http://puppetlabs.com/associate_response'
           mutex.synchronize do
@@ -70,9 +69,7 @@ module PCP
     def send(message)
       #p [:send, message]
       message[:sender] = @identity
-      encoded = message.encode
-      bytes = encoded.bytes.to_a
-      @connection.send(bytes)
+      @connection.send(message.encode)
     end
 
     private

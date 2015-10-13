@@ -82,13 +82,13 @@ RSpec.describe PCP::Message do
 
   context '.decode' do
     it 'makes a message' do
-      encoded = "\x01" +
-                "\x01\x00\x00\x00\x0d{\"foo\":\"bar\"}" +
-                "\x02\x00\x00\x00\x04test" +
-                "\x03\x00\x00\x00\x00"
+      encoded = [1,
+                 1, 0, 0, 0, 2, 123, 125,
+                 2, 0, 0, 0, 4, 116, 101, 115, 116,
+                 3, 0, 0, 0, 0]
       message = described_class.decode(encoded)
       expect(message.data).to eq('test')
-      expect(message[:foo]).to eq('bar')
+      expect(message.envelope).to eq({})
     end
   end
 
@@ -98,10 +98,10 @@ RSpec.describe PCP::Message do
       message.data = 'test'
       expect(message).to receive(:envelope).and_return({})
       encoded = message.encode
-      expect(encoded).to eq("\x01" +
-                            "\x01\x00\x00\x00\x02{}" +
-                            "\x02\x00\x00\x00\x04test" +
-                            "\x03\x00\x00\x00\x00")
+      expect(encoded).to eq([1,
+                             1, 0, 0, 0, 2, 123, 125,
+                             2, 0, 0, 0, 4, 116, 101, 115, 116,
+                             3, 0, 0, 0, 0])
     end
   end
 end

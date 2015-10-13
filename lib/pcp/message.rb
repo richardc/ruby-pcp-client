@@ -44,20 +44,25 @@ module PCP
       @chunks[1] = value
     end
 
-    def self.decode(bytes = '')
+    def self.decode(bytes = [])
       message = Message.new
-      (version, rest) = bytes.unpack('Ca*')
+      version = bytes.shift
 
       unless version == 1
         raise "Can only handle type 1 messages"
       end
 
-      while rest.bytesize > 0
-        (type, size, rest) = rest.unpack('CNa*')
-        (body, rest) = rest.unpack("a#{size}a*")
+      while bytes.size > 0
+        type = bytes.shift
+        size = bytes.take(4).pack('C*').unpack('N')[0]
+        bytes = bytes.drop(4)
+
+        body = bytes.take(size).pack('C*')
+        bytes = bytes.drop(size)
 
         if type == 1
           envelope = JSON.parse(body)
+          message.instance_variable_set(:@envelope, {})
           envelope.each do |k,v|
             message[k.to_sym] = v
           end
@@ -76,13 +81,14 @@ module PCP
         chunks << frame_chunk(i + 2, @chunks[i])
       end
 
-      ["\x01", frame_chunk(1, envelope.to_json), chunks].flatten.join('')
+      [1, frame_chunk(1, envelope.to_json), chunks].flatten
     end
 
     private
 
     def frame_chunk(type, body)
-      [type, body.bytesize, body].pack('CNa*')
+      size = [body.bytesize].pack('N').unpack('C*')
+      [type, size, body.bytes.to_a].flatten
     end
   end
 end

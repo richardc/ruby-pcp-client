@@ -1,6 +1,7 @@
 require 'eventmachine-le'
 require 'faye/websocket'
 require 'pcp/message'
+require 'logger'
 
 module PCP
   class Client
@@ -8,6 +9,8 @@ module PCP
 
     def initialize(params = {})
       @params = params
+      @logger = Logger.new(STDOUT)
+      @logger.level = params[:loglevel] || Logger::WARN
       @connection = nil
       @identity = make_identity
       @associated = false
@@ -18,19 +21,19 @@ module PCP
       associated_cv = ConditionVariable.new
 
       server = @params[:server] || 'wss://localhost:8142/pcp'
-      #p [:connect, server]
+      @logger.debug { [:connect, server] }
       @connection = Faye::WebSocket::Client.new(server, nil, {:tls => {:private_key_file => @params[:key],
                                                                        :cert_chain_file => @params[:cert],
                                                                        :ssl_version => :TLSv1}})
 
       @connection.on :open do |event|
-        #p [:open]
+        @logger.info { [:open] }
         send(associate_request)
       end
 
       @connection.on :message do |event|
-        #p [:message, event.data]
         message = ::PCP::Message.decode(event.data)
+        @logger.debug { [:message, :decoded, message] }
 
         if message[:message_type] == 'http://puppetlabs.com/associate_response'
           mutex.synchronize do
@@ -43,7 +46,7 @@ module PCP
       end
 
       @connection.on :close do |event|
-        #p [:close, event.code, event.reason]
+        @logger.info { [:close, event.code, event.reason] }
         mutex.synchronize do
           @associated = false
           associated_cv.signal
@@ -51,7 +54,7 @@ module PCP
       end
 
       @connection.on :error do |event|
-        #p [:error, event]
+        @logger.error { [:error, event] }
         @associated = false
       end
 
@@ -72,8 +75,8 @@ module PCP
     end
 
     def send(message)
-      #p [:send, message]
-      message[:sender] = @identity
+      @logger.debug { [:send, message] }
+      message[:sender] = identity
       @connection.send(message.encode)
     end
 

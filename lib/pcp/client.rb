@@ -42,7 +42,10 @@ module PCP
 
       @connection.on :close do |event|
         #p [:close, event.code, event.reason]
-        @associated = false
+        mutex.synchronize do
+          @associated = false
+          associated_cv.signal
+        end
       end
 
       @connection.on :error do |event|
@@ -58,7 +61,7 @@ module PCP
           end
         end
       rescue Timeout::Error
-        return false
+        return nil
       end
     end
 

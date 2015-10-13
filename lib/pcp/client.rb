@@ -80,7 +80,7 @@ module PCP
     def get_common_name(file)
       raw = File.read file
       cert = OpenSSL::X509::Certificate.new raw
-      cert.subject.to_s(OpenSSL::X509::Name::ONELINE).sub(/^CN\s*=\s*/, '')
+      cert.subject.to_a.assoc('CN')[1]
     end
 
     def make_identity

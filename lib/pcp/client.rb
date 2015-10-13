@@ -8,7 +8,7 @@ module PCP
     def initialize(params = {})
       @params = params
       @connection = nil
-      @identity = make_identity(params)
+      @identity = make_identity
       @associated = false
     end
 
@@ -77,9 +77,15 @@ module PCP
 
     private
 
-    def make_identity(params)
-      cn = 'client04.example.com'
-      type = params[:type] || "ruby-pcp-client-#{$$}"
+    def get_common_name(file)
+      raw = File.read file
+      cert = OpenSSL::X509::Certificate.new raw
+      cert.subject.to_s(OpenSSL::X509::Name::ONELINE).sub(/^CN\s*=\s*/, '')
+    end
+
+    def make_identity
+      cn = get_common_name(@params[:cert])
+      type = @params[:type] || "ruby-pcp-client-#{$$}"
       "pcp://#{cn}/#{type}"
     end
 

@@ -3,6 +3,8 @@ require 'pcp/message'
 
 module PCP
   class Client
+    attr_accessor :identity
+
     def initialize(params = {})
       @params = params
       @connection = nil

@@ -8,5 +8,6 @@ Gem::Specification.new do |s|
   s.authors     = ["Puppet Labs"]
   s.email       = "puppet@puppetlabs.com"
   s.files       = Dir["lib/**/*.rb"]
+  s.add_runtime_dependency 'eventmachine-le'
   s.add_runtime_dependency 'faye-websocket'
 end

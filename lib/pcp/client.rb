@@ -1,3 +1,4 @@
+require 'eventmachine-le'
 require 'faye/websocket'
 require 'pcp/message'
 
@@ -19,7 +20,8 @@ module PCP
       server = @params[:server] || 'wss://localhost:8142/pcp'
       #p [:connect, server]
       @connection = Faye::WebSocket::Client.new(server, nil, {:tls => {:private_key_file => @params[:key],
-                                                                       :cert_chain_file => @params[:cert]}})
+                                                                       :cert_chain_file => @params[:cert],
+                                                                       :ssl_version => :TLSv1}})
 
       @connection.on :open do |event|
         #p [:open]

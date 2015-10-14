@@ -67,7 +67,7 @@ begin
           # Have all responses we expect, bail
           run_time = Time.now.to_f - start_time
           puts
-          puts "Received all responses in %0.2f seconds." % [ expected.size, run_time ]
+          puts "Received all responses in %0.2f seconds." % [run_time]
           done = true
         end
       end

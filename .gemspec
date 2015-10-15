@@ -10,4 +10,5 @@ Gem::Specification.new do |s|
   s.files       = Dir["lib/**/*.rb"]
   s.add_runtime_dependency 'eventmachine-le'
   s.add_runtime_dependency 'faye-websocket'
+  s.add_runtime_dependency 'rschema'
 end

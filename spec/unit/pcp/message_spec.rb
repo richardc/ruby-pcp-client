@@ -86,6 +86,7 @@ RSpec.describe PCP::Message do
                  1, 0, 0, 0, 2, 123, 125,
                  2, 0, 0, 0, 4, 116, 101, 115, 116,
                  3, 0, 0, 0, 0]
+      allow(RSchema).to receive(:validate!).with(PCP::Protocol::Envelope, {})
       message = described_class.decode(encoded)
       expect(message.data).to eq('test')
       expect(message.envelope).to eq({})
@@ -96,7 +97,8 @@ RSpec.describe PCP::Message do
     it 'returns an array of bytes' do
       message = described_class.new
       message.data = 'test'
-      expect(message).to receive(:envelope).and_return({})
+      expect(message).to receive(:envelope).and_return({}).twice
+      allow(RSchema).to receive(:validate!).with(PCP::Protocol::Envelope, {})
       encoded = message.encode
       expect(encoded).to eq([1,
                              1, 0, 0, 0, 2, 123, 125,

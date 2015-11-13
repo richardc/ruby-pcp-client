@@ -1,6 +1,7 @@
 require 'json'
 require 'securerandom'
 require 'time'
+require 'pcp/protocol'
 
 module PCP
   class Message
@@ -66,6 +67,7 @@ module PCP
           envelope.each do |k,v|
             message[k.to_sym] = v
           end
+          RSchema.validate!(PCP::Protocol::Envelope, message.instance_variable_get(:@envelope))
         else
           message.instance_variable_get(:@chunks)[type - 2] = body
         end
@@ -80,6 +82,8 @@ module PCP
       @chunks.each_index do |i|
         chunks << frame_chunk(i + 2, @chunks[i])
       end
+
+      RSchema.validate!(PCP::Protocol::Envelope, envelope)
 
       [1, frame_chunk(1, envelope.to_json), chunks].flatten
     end

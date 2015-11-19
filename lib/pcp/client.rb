@@ -28,29 +28,41 @@ module PCP
                                                                        :ssl_version => :TLSv1}})
 
       @connection.on :open do |event|
-        @logger.info { [:open] }
-        send(associate_request)
+        begin
+          @logger.info { [:open] }
+          send(associate_request)
+        rescue Exception => e
+          @logger.error { [:open_exception, e] }
+        end
       end
 
       @connection.on :message do |event|
-        message = ::PCP::Message.decode(event.data)
-        @logger.debug { [:message, :decoded, message] }
+        begin
+          message = ::PCP::Message.decode(event.data)
+          @logger.debug { [:message, :decoded, message] }
 
-        if message[:message_type] == 'http://puppetlabs.com/associate_response'
-          mutex.synchronize do
-            @associated = JSON.load(message.data)["success"]
-            associated_cv.signal
+          if message[:message_type] == 'http://puppetlabs.com/associate_response'
+            mutex.synchronize do
+              @associated = JSON.load(message.data)["success"]
+              associated_cv.signal
+            end
+          elsif @on_message
+            @on_message.call(message)
           end
-        elsif @on_message
-          @on_message.call(message)
+        rescue Exception => e
+          @logger.error { [:message_exception, e] }
         end
       end
 
       @connection.on :close do |event|
-        @logger.info { [:close, event.code, event.reason] }
-        mutex.synchronize do
-          @associated = false
-          associated_cv.signal
+        begin
+          @logger.info { [:close, event.code, event.reason] }
+          mutex.synchronize do
+            @associated = false
+            associated_cv.signal
+          end
+        rescue Exception => e
+          @logger.error { [:close_exception, e] }
         end
       end
 

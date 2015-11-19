@@ -8,11 +8,14 @@ module PCP
     attr_accessor :identity
 
     def initialize(params = {})
-      @params = params
+      @server = params[:server] || 'wss://localhost:8142/pcp'
+      @key = params[:key]
+      @cert = params[:cert]
       @logger = Logger.new(STDOUT)
       @logger.level = params[:loglevel] || Logger::WARN
       @connection = nil
-      @identity = make_identity
+      type = params[:type] || "ruby-pcp-client-#{$$}"
+      @identity = make_identity(@ssl_cert, type)
       @on_message = params[:on_message]
       @associated = false
     end
@@ -21,11 +24,10 @@ module PCP
       mutex = Mutex.new
       associated_cv = ConditionVariable.new
 
-      server = @params[:server] || 'wss://localhost:8142/pcp'
-      @logger.debug { [:connect, server] }
-      @connection = Faye::WebSocket::Client.new(server, nil, {:tls => {:private_key_file => @params[:key],
-                                                                       :cert_chain_file => @params[:cert],
-                                                                       :ssl_version => :TLSv1}})
+      @logger.debug { [:connect, @server] }
+      @connection = Faye::WebSocket::Client.new(@server, nil, {:tls => {:private_key_file => @key,
+                                                                        :cert_chain_file => @cert,
+                                                                        :ssl_version => :TLSv1}})
 
       @connection.on :open do |event|
         begin
@@ -101,9 +103,8 @@ module PCP
       cert.subject.to_a.assoc('CN')[1]
     end
 
-    def make_identity
-      cn = get_common_name(@params[:cert])
-      type = @params[:type] || "ruby-pcp-client-#{$$}"
+    def make_identity(cert, type)
+      cn = get_common_name(cert)
       "pcp://#{cn}/#{type}"
     end
 

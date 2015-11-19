@@ -13,6 +13,7 @@ module PCP
       @logger.level = params[:loglevel] || Logger::WARN
       @connection = nil
       @identity = make_identity
+      @on_message = params[:on_message]
       @associated = false
     end
 
@@ -40,8 +41,8 @@ module PCP
             @associated = JSON.load(message.data)["success"]
             associated_cv.signal
           end
-        elsif block_given?
-          yield message
+        elsif @on_message
+          @on_message.call(message)
         end
       end
 

@@ -9,8 +9,8 @@ module PCP
 
     def initialize(params = {})
       @server = params[:server] || 'wss://localhost:8142/pcp'
-      @key = params[:key]
-      @cert = params[:cert]
+      @ssl_key = params[:ssl_key]
+      @ssl_cert = params[:ssl_cert]
       @logger = Logger.new(STDOUT)
       @logger.level = params[:loglevel] || Logger::WARN
       @connection = nil
@@ -25,8 +25,8 @@ module PCP
       associated_cv = ConditionVariable.new
 
       @logger.debug { [:connect, @server] }
-      @connection = Faye::WebSocket::Client.new(@server, nil, {:tls => {:private_key_file => @key,
-                                                                        :cert_chain_file => @cert,
+      @connection = Faye::WebSocket::Client.new(@server, nil, {:tls => {:private_key_file => @ssl_key,
+                                                                        :cert_chain_file => @ssl_cert,
                                                                         :ssl_version => :TLSv1}})
 
       @connection.on :open do |event|

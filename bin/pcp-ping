@@ -31,8 +31,8 @@ on_message = proc do |message|
   end
 end
 
-client = PCP::Client.new({:key => 'test-resources/ssl/private_keys/client04.example.com.pem',
-                          :cert => 'test-resources/ssl/certs/client04.example.com.pem',
+client = PCP::Client.new({:ssl_key => 'test-resources/ssl/private_keys/client04.example.com.pem',
+                          :ssl_cert => 'test-resources/ssl/certs/client04.example.com.pem',
                           :on_message => on_message})
 
 client.connect(3)

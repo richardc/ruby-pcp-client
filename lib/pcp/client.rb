@@ -20,7 +20,7 @@ module PCP
       @associated = false
     end
 
-    def connect(seconds)
+    def connect(seconds = 0)
       mutex = Mutex.new
       associated_cv = ConditionVariable.new
 

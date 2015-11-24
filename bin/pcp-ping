@@ -35,7 +35,7 @@ client = PCP::Client.new({:ssl_key => 'test-resources/ssl/private_keys/client04.
                           :ssl_cert => 'test-resources/ssl/certs/client04.example.com.pem',
                           :on_message => on_message})
 
-client.connect(3)
+client.connect
 
 if !client.associated?
   puts "Didn't connect to broker."

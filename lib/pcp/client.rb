@@ -40,7 +40,7 @@ module PCP
 
       @connection.on :message do |event|
         begin
-          message = ::PCP::Message.decode(event.data)
+          message = ::PCP::Message.new(event.data)
           @logger.debug { [:message, :decoded, message] }
 
           if message[:message_type] == 'http://puppetlabs.com/associate_response'

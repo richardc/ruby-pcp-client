@@ -21,6 +21,17 @@ RSpec.describe PCP::Message do
       expect(described_class.new({:message_type => 'example/rspec'}).envelope).to eq({:id => uuid, :message_type => 'example/rspec'})
       expect(described_class.new({:id => 'rspec'}).envelope).to eq({:id => 'rspec'})
     end
+
+    it 'decodes from bytes' do
+      encoded = [1,
+                 1, 0, 0, 0, 2, 123, 125,
+                 2, 0, 0, 0, 4, 116, 101, 115, 116,
+                 3, 0, 0, 0, 0]
+      allow(RSchema).to receive(:validate!).with(PCP::Protocol::Envelope, {})
+      message = described_class.new(encoded)
+      expect(message.data).to eq('test')
+      expect(message.envelope).to eq({})
+    end
   end
 
   context '#expires' do
@@ -77,19 +88,6 @@ RSpec.describe PCP::Message do
       message.instance_variable_set(:@chunks, ['data', 'debug'])
       message.debug = 'new-debug'
       expect(message.instance_variable_get(:@chunks)).to eq(['data', 'new-debug'])
-    end
-  end
-
-  context '.decode' do
-    it 'makes a message' do
-      encoded = [1,
-                 1, 0, 0, 0, 2, 123, 125,
-                 2, 0, 0, 0, 4, 116, 101, 115, 116,
-                 3, 0, 0, 0, 0]
-      allow(RSchema).to receive(:validate!).with(PCP::Protocol::Envelope, {})
-      message = described_class.decode(encoded)
-      expect(message.data).to eq('test')
-      expect(message.envelope).to eq({})
     end
   end
 

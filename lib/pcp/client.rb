@@ -109,7 +109,6 @@ module PCP
     end
 
     def associate_request
-      #p [:associate_request, @identity]
       Message.new({:message_type => 'http://puppetlabs.com/associate_request',
                    :sender => @identity,
                    :targets => ['pcp:///server']}).expires(3)

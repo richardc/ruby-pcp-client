@@ -8,48 +8,63 @@ module PCP
     attr_accessor :identity
 
     def initialize(params = {})
-      @params = params
+      @server = params[:server] || 'wss://localhost:8142/pcp'
+      @ssl_key = params[:ssl_key]
+      @ssl_cert = params[:ssl_cert]
       @logger = Logger.new(STDOUT)
       @logger.level = params[:loglevel] || Logger::WARN
       @connection = nil
-      @identity = make_identity
+      type = params[:type] || "ruby-pcp-client-#{$$}"
+      @identity = make_identity(@ssl_cert, type)
+      @on_message = params[:on_message]
       @associated = false
     end
 
-    def connect(seconds)
+    def connect(seconds = 0)
       mutex = Mutex.new
       associated_cv = ConditionVariable.new
 
-      server = @params[:server] || 'wss://localhost:8142/pcp'
-      @logger.debug { [:connect, server] }
-      @connection = Faye::WebSocket::Client.new(server, nil, {:tls => {:private_key_file => @params[:key],
-                                                                       :cert_chain_file => @params[:cert],
-                                                                       :ssl_version => :TLSv1}})
+      @logger.debug { [:connect, @server] }
+      @connection = Faye::WebSocket::Client.new(@server, nil, {:tls => {:private_key_file => @ssl_key,
+                                                                        :cert_chain_file => @ssl_cert,
+                                                                        :ssl_version => :TLSv1}})
 
       @connection.on :open do |event|
-        @logger.info { [:open] }
-        send(associate_request)
+        begin
+          @logger.info { [:open] }
+          send(associate_request)
+        rescue Exception => e
+          @logger.error { [:open_exception, e] }
+        end
       end
 
       @connection.on :message do |event|
-        message = ::PCP::Message.decode(event.data)
-        @logger.debug { [:message, :decoded, message] }
+        begin
+          message = ::PCP::Message.new(event.data)
+          @logger.debug { [:message, :decoded, message] }
 
-        if message[:message_type] == 'http://puppetlabs.com/associate_response'
-          mutex.synchronize do
-            @associated = JSON.load(message.data)["success"]
-            associated_cv.signal
+          if message[:message_type] == 'http://puppetlabs.com/associate_response'
+            mutex.synchronize do
+              @associated = JSON.load(message.data)["success"]
+              associated_cv.signal
+            end
+          elsif @on_message
+            @on_message.call(message)
           end
-        elsif block_given?
-          yield message
+        rescue Exception => e
+          @logger.error { [:message_exception, e] }
         end
       end
 
       @connection.on :close do |event|
-        @logger.info { [:close, event.code, event.reason] }
-        mutex.synchronize do
-          @associated = false
-          associated_cv.signal
+        begin
+          @logger.info { [:close, event.code, event.reason] }
+          mutex.synchronize do
+            @associated = false
+            associated_cv.signal
+          end
+        rescue Exception => e
+          @logger.error { [:close_exception, e] }
         end
       end
 
@@ -88,14 +103,12 @@ module PCP
       cert.subject.to_a.assoc('CN')[1]
     end
 
-    def make_identity
-      cn = get_common_name(@params[:cert])
-      type = @params[:type] || "ruby-pcp-client-#{$$}"
+    def make_identity(cert, type)
+      cn = get_common_name(cert)
       "pcp://#{cn}/#{type}"
     end
 
     def associate_request
-      #p [:associate_request, @identity]
       Message.new({:message_type => 'http://puppetlabs.com/associate_request',
                    :sender => @identity,
                    :targets => ['pcp:///server']}).expires(3)

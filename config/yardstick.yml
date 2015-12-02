@@ -1,0 +1,6 @@
+---
+threshold: 100
+path: 'lib/**/*.rb'
+rules:
+  ExampleTag:
+    enabled: false

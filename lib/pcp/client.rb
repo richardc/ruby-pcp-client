@@ -4,9 +4,25 @@ require 'pcp/message'
 require 'logger'
 
 module PCP
+  # Manages a client connection to a pcp broker
   class Client
+    # Read the @identity property
+    #
+    # @api public
+    # @return [String]
     attr_accessor :identity
 
+    # Set a proc that will be used to handle messages
+    #
+    # @api public
+    # @return [Proc]
+    attr_accessor :on_message
+
+    # Construct a new disconnected client
+    #
+    # @api public
+    # @param params [Hash<Symbol,Object>]
+    # @return a new client
     def initialize(params = {})
       @server = params[:server] || 'wss://localhost:8142/pcp'
       @ssl_key = params[:ssl_key]
@@ -20,6 +36,11 @@ module PCP
       @associated = false
     end
 
+    # Connect to the server
+    #
+    # @api public
+    # @param seconds [Numeric]
+    # @return [true,false,nil]
     def connect(seconds = 0)
       mutex = Mutex.new
       associated_cv = ConditionVariable.new
@@ -85,10 +106,19 @@ module PCP
       end
     end
 
+    # Is the client associated with the server
+    #
+    # @api public
+    # @return [true,false]
     def associated?
       @associated
     end
 
+    # Send a message to the server
+    #
+    # @api public
+    # @param message [PCP::Message]
+    # @return unused
     def send(message)
       @logger.debug { [:send, message] }
       message[:sender] = identity
@@ -97,17 +127,32 @@ module PCP
 
     private
 
+    # Get the common name from an X509 certficate in file
+    #
+    # @api private
+    # @param [String] file
+    # @return [String]
     def get_common_name(file)
       raw = File.read file
       cert = OpenSSL::X509::Certificate.new raw
       cert.subject.to_a.assoc('CN')[1]
     end
 
+    # Make the PCP Uri for this client
+    #
+    # @api private
+    # @param cert [String]
+    # @param type [String]
+    # @return [String]
     def make_identity(cert, type)
       cn = get_common_name(cert)
       "pcp://#{cn}/#{type}"
     end
 
+    # Make an association request message for this client
+    #
+    # @api private
+    # @return [PCP::Message]
     def associate_request
       Message.new({:message_type => 'http://puppetlabs.com/associate_request',
                    :sender => @identity,

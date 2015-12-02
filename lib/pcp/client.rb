@@ -12,6 +12,12 @@ module PCP
     # @return [String]
     attr_accessor :identity
 
+    # Set a proc that will be used to handle messages
+    #
+    # @api public
+    # @return [Proc]
+    attr_accessor :on_message
+
     # Construct a new disconnected client
     #
     # @api public

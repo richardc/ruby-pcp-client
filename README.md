@@ -36,7 +36,6 @@ client.send(message)
 
 # Hang around and see what responses we get back
 sleep(10)
-end
 ```
 
 

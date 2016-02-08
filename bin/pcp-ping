@@ -4,6 +4,7 @@ require 'pcp/client'
 start_time = Time.now.to_f
 
 Thread.new { EM.run }
+Thread.pass until EM.reactor_running?
 
 client = PCP::Client.new({:ssl_key => 'test-resources/ssl/private_keys/client04.example.com.pem',
                           :ssl_cert => 'test-resources/ssl/certs/client04.example.com.pem'})

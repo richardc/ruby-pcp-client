@@ -1,0 +1,24 @@
+#!ruby
+require 'pcp/client'
+
+
+def connect_then_disconnect
+  run_thread = Thread.new { EM.run }
+  Thread.pass until EM.reactor_running?
+
+  ssl_key = 'test-resources/ssl/private_keys/client04.example.com.pem'
+  ssl_cert = 'test-resources/ssl/certs/client04.example.com.pem'
+
+  client = PCP::Client.new({:ssl_key => ssl_key,
+                            :ssl_cert => ssl_cert,
+                            :loglevel => Logger::DEBUG})
+  client.connect(2)
+
+  EM.stop
+  # Need to join so EM.run can exit before we try and call it again.
+  # Race conditions all the way down.
+  # run_thread.join
+end
+
+connect_then_disconnect
+connect_then_disconnect

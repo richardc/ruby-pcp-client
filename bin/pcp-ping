@@ -1,12 +1,28 @@
 #!/usr/bin/env ruby
 require 'pcp/client'
+require 'optparse'
+
+ssl_key = 'test-resources/ssl/private_keys/client04.example.com.pem'
+ssl_cert = 'test-resources/ssl/certs/client04.example.com.pem'
+debug = false
+server = 'wss://127.0.0.1:8142/pcp'
+
+OptionParser.new do |opts|
+  opts.on("-d",  "--debug", "Run noisily") { |v| debug = v }
+  opts.on("--ssl_key FILE", "Use this ssl key") { |v| ssl_key = v }
+  opts.on("--ssl_cert FILE", "Use this ssl cert") { |v| ssl_cert = v }
+  opts.on("--server URL", "Server to connect to") { |v| server = v }
+end.parse!
 
 start_time = Time.now.to_f
 
 Thread.new { EM.run }
 
-client = PCP::Client.new({:ssl_key => 'test-resources/ssl/private_keys/client04.example.com.pem',
-                          :ssl_cert => 'test-resources/ssl/certs/client04.example.com.pem'})
+client = PCP::Client.new({:ssl_key => ssl_key,
+                          :ssl_cert => ssl_cert,
+                          :loglevel => debug ? Logger::DEBUG : Logger::WARN,
+                          :server => server,
+                         })
 
 # Record the expected set of destinations from the destination_report,
 # then all the responses from the rpc_blocking_response

@@ -16,8 +16,9 @@ To connect to a broker and send and receive messages:
 ```ruby
 require 'pcp/client'
 
-# Start an eventmachine main loop
+# Start the eventmachine reactor in its own thread
 Thread.new { EM.run }
+Thread.pass until EM.reactor_running?
 
 client = PCP::Client.new({:server => 'wss://localhost:8142/pcp',
                           :ssl_key => 'test-resources/ssl/private_keys/client01.example.com.pem',
@@ -44,8 +45,9 @@ A matching agent that would respond to this may look like this:
 ```ruby
 require 'pcp/client'
 
-# Start an eventmachine main loop
+# Start the eventmachine reactor in its own thread
 Thread.new { EM.run }
+Thread.pass until EM.reactor_running?
 
 client = PCP::Client.new({:server => 'wss://localhost:8142/pcp',
                           :ssl_key => 'test-resources/ssl/private_keys/client02.example.com.pem',
@@ -71,6 +73,7 @@ loop do end
 
 There's a more extended example of this which makes more use of
 PCP/PXP features in bin/pcp-ping.
+
 
 Testing
 =======

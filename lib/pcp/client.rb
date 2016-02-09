@@ -42,6 +42,17 @@ module PCP
     # @param seconds [Numeric]
     # @return [true,false,nil]
     def connect(seconds = 0)
+      unless EM.reactor_running?
+        raise "An Eventmachine reactor needs to be running"
+      end
+
+      if EM.reactor_thread?
+        # Because we use a condition variable to signal this thread
+        # from the reactor thread to provide an imperative interface,
+        # they cannot be the same thread
+        raise "Cannot be run on the same thread as the reactor"
+      end
+
       mutex = Mutex.new
       associated_cv = ConditionVariable.new
 

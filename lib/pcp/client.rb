@@ -53,6 +53,11 @@ module PCP
         raise "Cannot be run on the same thread as the reactor"
       end
 
+      if @connection
+        # We close over so much, we really just need to say no for now
+        raise "Can only connect once per client"
+      end
+
       mutex = Mutex.new
       associated_cv = ConditionVariable.new
 

@@ -122,6 +122,13 @@ module PCP
       end
     end
 
+    # Is the client connected to the server
+    # @api public
+    # @return [true,false]
+    def connected?
+      @connection && @connection.ready_state == Faye::WebSocket::API::OPEN
+    end
+
     # Is the client associated with the server
     #
     # @api public

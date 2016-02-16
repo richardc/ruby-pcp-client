@@ -27,7 +27,7 @@ module PCP
       @server = params[:server] || 'wss://localhost:8142/pcp'
       @ssl_key = params[:ssl_key]
       @ssl_cert = params[:ssl_cert]
-      @logger = Logger.new(STDOUT)
+      @logger = params[:logger] || Logger.new(STDOUT)
       @logger.level = params[:loglevel] || Logger::WARN
       @connection = nil
       type = params[:type] || "ruby-pcp-client-#{$$}"

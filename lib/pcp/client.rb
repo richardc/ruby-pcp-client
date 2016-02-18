@@ -27,7 +27,7 @@ module PCP
       @server = params[:server] || 'wss://localhost:8142/pcp'
       @ssl_key = params[:ssl_key]
       @ssl_cert = params[:ssl_cert]
-      @logger = Logger.new(STDOUT)
+      @logger = params[:logger] || Logger.new(STDOUT)
       @logger.level = params[:loglevel] || Logger::WARN
       @connection = nil
       type = params[:type] || "ruby-pcp-client-#{$$}"
@@ -51,6 +51,11 @@ module PCP
         # from the reactor thread to provide an imperative interface,
         # they cannot be the same thread
         raise "Cannot be run on the same thread as the reactor"
+      end
+
+      if @connection
+        # We close over so much, we really just need to say no for now
+        raise "Can only connect once per client"
       end
 
       mutex = Mutex.new

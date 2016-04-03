@@ -3,6 +3,48 @@ require 'faye/websocket'
 require 'pcp/message'
 require 'logger'
 
+## evil, horrid, state inducing monkey patch of hell
+
+# So EventMachine when you specify :verify_peer => true in the TLS
+# options decides what that means is it should just fire off a
+# #ssl_verify_peer(cert) on the Connection object; which is expected
+# to be user-supplied.
+
+# I guess this is eventmachine's attempt to get out of
+# the business of dealing with ssl certificates
+
+# To get us into the business of being able to verify the ssl cert,
+# we're monkey-patching Faye::Websocket::Client::Connection to define
+# the ssl_verify_peer method, so we can do the verification we need
+# to do.
+module Faye
+  class WebSocket
+    class Client
+      module Connection
+        def ssl_verify_peer(cert_text)
+          ca_cert_file = parent.instance_variable_get(:@socket_tls)[:ssl_ca_cert]
+
+          cert_store = OpenSSL::X509::Store.new
+          cert_store.add_file ca_cert_file
+
+          cert = OpenSSL::X509::Certificate.new cert_text
+
+          if !cert_store.verify(cert)
+            # Not trusted by the ca_cert
+            return false
+          end
+
+          hostname = parent.instance_variable_get(:@socket_tls)[:hostname]
+
+          # Check the CN matched the hostname we extracted from the URI
+          # TODO: for extra credit, look at the Subject-Alternate-Names
+          cert.subject.to_a.assoc('CN')[1] == hostname
+        end
+      end
+    end
+  end
+end
+
 module PCP
   # Manages a client connection to a pcp broker
   class Client
@@ -27,6 +69,7 @@ module PCP
       @server = params[:server] || 'wss://localhost:8142/pcp'
       @ssl_key = params[:ssl_key]
       @ssl_cert = params[:ssl_cert]
+      @ssl_ca_cert = params[:ssl_ca_cert]
       @logger = params[:logger] || Logger.new(STDOUT)
       @logger.level = params[:loglevel] || Logger::WARN
       @connection = nil
@@ -62,8 +105,14 @@ module PCP
       associated_cv = ConditionVariable.new
 
       @logger.debug { [:connect, @server] }
+
       @connection = Faye::WebSocket::Client.new(@server, nil, {:tls => {:private_key_file => @ssl_key,
                                                                         :cert_chain_file => @ssl_cert,
+                                                                        # XXX this several forms of evil. see comment in the Faye monkeypatch earlier
+                                                                        :ssl_ca_cert => @ssl_ca_cert,
+                                                                        :verify_peer => true,
+                                                                        :fail_if_no_peer_cert => true,
+                                                                        :hostname => URI.parse(@server).host,
                                                                         :ssl_version => ["TLSv1_2"]}})
 
       @connection.on :open do |event|

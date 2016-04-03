@@ -1,4 +1,4 @@
-require 'eventmachine-le'
+require 'eventmachine'
 require 'faye/websocket'
 require 'pcp/message'
 require 'logger'
@@ -64,7 +64,7 @@ module PCP
       @logger.debug { [:connect, @server] }
       @connection = Faye::WebSocket::Client.new(@server, nil, {:tls => {:private_key_file => @ssl_key,
                                                                         :cert_chain_file => @ssl_cert,
-                                                                        :ssl_version => :TLSv1}})
+                                                                        :ssl_version => ["TLSv1_2"]}})
 
       @connection.on :open do |event|
         begin

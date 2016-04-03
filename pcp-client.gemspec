@@ -8,8 +8,7 @@ Gem::Specification.new do |s|
   s.authors     = ["Puppet Labs"]
   s.email       = "puppet@puppetlabs.com"
   s.files       = Dir["lib/**/*.rb"]
-  # TODO(PCP-179): switch back to eventmachine 1.2 when available
-  s.add_runtime_dependency 'eventmachine-le', '~> 1.1'
+  s.add_runtime_dependency 'eventmachine', '~> 1.2'
   s.add_runtime_dependency 'faye-websocket', '~> 0.10'
   s.add_runtime_dependency 'rschema', '~> 1.3'
 end

@@ -141,6 +141,14 @@ module PCP
       @connection.send(message.encode)
     end
 
+    # Disconnect the client
+    # @api public
+    # @return unused
+    def close
+      @logger.debug { [:close] }
+      @connection.close
+    end
+
     private
 
     # Get the common name from an X509 certficate in file

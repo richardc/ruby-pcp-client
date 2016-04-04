@@ -42,17 +42,6 @@ module PCP
     # @param seconds [Numeric]
     # @return [true,false,nil]
     def connect(seconds = 0)
-      unless EM.reactor_running?
-        raise "An Eventmachine reactor needs to be running"
-      end
-
-      if EM.reactor_thread?
-        # Because we use a condition variable to signal this thread
-        # from the reactor thread to provide an imperative interface,
-        # they cannot be the same thread
-        raise "Cannot be run on the same thread as the reactor"
-      end
-
       if @connection
         # We close over so much, we really just need to say no for now
         raise "Can only connect once per client"
@@ -108,6 +97,22 @@ module PCP
       @connection.on :error do |event|
         @logger.error { [:error, event] }
         @associated = false
+      end
+
+      if !EM.reactor_running?
+        @logger.debug { [:no_eventmachine_reactor,
+                         "Eventmachine reactor is not running" ] }
+        return nil
+      end
+
+      if EM.reactor_thread?
+        # Because we use a condition variable to signal this thread
+        # from the reactor thread to provide an imperative interface,
+        # they cannot be the same thread.  We might associate later,
+        # we just can't wait on ourselves from here.
+        @logger.debug { [:connection_cannot_wait,
+                        "Cannot wait on a connection if we are in the same thread as the reactor" ] }
+        return nil
       end
 
       begin

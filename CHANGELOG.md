@@ -1,3 +1,11 @@
+## 0.3.0
+
+- [PCP-361](https://tickets.puppetlabs.com/browse/PCP-361) Added
+  ::PCP::Client#close method, to explicitly close the connection
+- [PCP-179](https://tickets.puppetlabs.com/browse/PCP-179) Now depends on
+  eventmachine 1.2 rather than eventmachine-le (1.2 absorbed the feature we
+  needed from eventmachine-le).
+
 ## 0.2.0
 
 - Added option parsing to bin/pcp-ping example

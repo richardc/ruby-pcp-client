@@ -50,53 +50,56 @@ module PCP
       mutex = Mutex.new
       associated_cv = ConditionVariable.new
 
-      @logger.debug { [:connect, @server] }
-      @connection = Faye::WebSocket::Client.new(@server, nil, {:tls => {:private_key_file => @ssl_key,
-                                                                        :cert_chain_file => @ssl_cert,
-                                                                        :ssl_version => ["TLSv1", "TLSv1_1", "TLSv1_2"]}})
+      @logger.debug { [:connect, :scheduling] }
+      EM.next_tick do
+        @logger.debug { [:connect, @server] }
+        @connection = Faye::WebSocket::Client.new(@server, nil, {:tls => {:private_key_file => @ssl_key,
+                                                                          :cert_chain_file => @ssl_cert,
+                                                                          :ssl_version => ["TLSv1", "TLSv1_1", "TLSv1_2"]}})
 
-      @connection.on :open do |event|
-        begin
-          @logger.info { [:open] }
-          send(associate_request)
-        rescue Exception => e
-          @logger.error { [:open_exception, e] }
+        @connection.on :open do |event|
+          begin
+            @logger.info { [:open] }
+            send(associate_request)
+          rescue Exception => e
+            @logger.error { [:open_exception, e] }
+          end
         end
-      end
 
-      @connection.on :message do |event|
-        begin
-          message = ::PCP::Message.new(event.data)
-          @logger.debug { [:message, :decoded, message] }
+        @connection.on :message do |event|
+          begin
+            message = ::PCP::Message.new(event.data)
+            @logger.debug { [:message, :decoded, message] }
 
-          if message[:message_type] == 'http://puppetlabs.com/associate_response'
+            if message[:message_type] == 'http://puppetlabs.com/associate_response'
+              mutex.synchronize do
+                @associated = JSON.load(message.data)["success"]
+                associated_cv.signal
+              end
+            elsif @on_message
+              @on_message.call(message)
+            end
+          rescue Exception => e
+            @logger.error { [:message_exception, e] }
+          end
+        end
+
+        @connection.on :close do |event|
+          begin
+            @logger.info { [:close, event.code, event.reason] }
             mutex.synchronize do
-              @associated = JSON.load(message.data)["success"]
+              @associated = false
               associated_cv.signal
             end
-          elsif @on_message
-            @on_message.call(message)
+          rescue Exception => e
+            @logger.error { [:close_exception, e] }
           end
-        rescue Exception => e
-          @logger.error { [:message_exception, e] }
         end
-      end
 
-      @connection.on :close do |event|
-        begin
-          @logger.info { [:close, event.code, event.reason] }
-          mutex.synchronize do
-            @associated = false
-            associated_cv.signal
-          end
-        rescue Exception => e
-          @logger.error { [:close_exception, e] }
+        @connection.on :error do |event|
+          @logger.error { [:error, event] }
+          @associated = false
         end
-      end
-
-      @connection.on :error do |event|
-        @logger.error { [:error, event] }
-        @associated = false
       end
 
       if !EM.reactor_running?
@@ -141,17 +144,21 @@ module PCP
     # @param message [PCP::Message]
     # @return unused
     def send(message)
-      @logger.debug { [:send, message] }
-      message[:sender] = identity
-      @connection.send(message.encode)
+      EM.next_tick do
+        @logger.debug { [:send, message] }
+        message[:sender] = identity
+        @connection.send(message.encode)
+      end
     end
 
     # Disconnect the client
     # @api public
     # @return unused
     def close
-      @logger.debug { [:close] }
-      @connection.close
+      EM.next_tick do
+        @logger.debug { [:close] }
+        @connection.close
+      end
     end
 
     private

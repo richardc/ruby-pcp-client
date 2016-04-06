@@ -1,3 +1,9 @@
+## 0.3.1
+
+- [PCP-329](https://tickets.puppetlabs.com/browse/PCP-361) Wrapped eventmachine
+  interactions in `EM.next_tick` to avoid `EventMachine::ConnectionNotBound`
+  exceptions.
+
 ## 0.3.0
 
 - [PCP-361](https://tickets.puppetlabs.com/browse/PCP-361) Added

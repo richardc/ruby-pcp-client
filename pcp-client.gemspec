@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'pcp-client'
-  s.version     = '0.3.1'
+  s.version     = '0.4.0'
   s.licenses    = ['ASL 2.0']
   s.summary     = "Client library for PCP"
   s.description = "See https://github.com/puppetlabs/pcp-specifications"

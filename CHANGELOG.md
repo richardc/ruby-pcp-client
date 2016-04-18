@@ -1,3 +1,8 @@
+## 0.4.0
+
+- [PCP-366](https://tickets.puppetlabs.com/browse/PCP-366) New mandatory `:ssl_ca_cert`
+  parameter for strict ssl validation.
+
 ## 0.3.1
 
 - [PCP-329](https://tickets.puppetlabs.com/browse/PCP-361) Wrapped eventmachine
